@@ -1,3 +1,9 @@
+/*
+CSS430-A Dimpsey
+Project 1 Unix Shell - 10/16/2026
+Jacky Zhang
+*/
+
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -40,11 +46,17 @@ int main() {
                args.push_back(token);
                token = strtok(NULL, " \n");
           }
-          args.push_back(NULL);
+          args.push_back(NULL); // mark end with null
 
           // prevent crash if user only presses enter
           if (args.size() == 1) {
                continue;
+          }
+
+          // exits program
+          if (strcmp(args[0], "exit") == 0) {
+               should_run = 0;
+               break;
           }
 
           // dbugger print, checks args arr contents
@@ -64,6 +76,7 @@ int main() {
           // check for input/output operator
 
           // keep track of operation, 0 = none, 1 = input, 2 = output
+          // check for pipe
           int ioOperation = 0;
           string filename = "";
           int pipeIndex = 0;
@@ -81,7 +94,9 @@ int main() {
                     args[i] = NULL;
                     break;
                } else if (args[i] != nullptr && strcmp(args[i], "|") == 0 &&
-                          args[i + 1] != nullptr) { // check for pipe
+                          args[i + 1] !=
+                              nullptr) { // check for pipe, breaks into two,
+                                         // save index position
                     pipeIndex = i + 1;
                     args[i] = NULL;
                     break;
@@ -118,13 +133,15 @@ int main() {
                     close(fd);
                }
 
+               // handles pipe
                if (pipeIndex > 0) {
                     int pipefd[2];
                     pipe(pipefd);
 
+                    // grandchild
                     int rc2 = fork();
-                    if (rc2 == 0) {
-
+                    if (rc2 == 0) { // new fork
+                         // reading side, right side of pipe
                          dup2(pipefd[0], STDIN_FILENO);
                          close(pipefd[0]);
                          close(pipefd[1]);
@@ -134,7 +151,8 @@ int main() {
                               exit(1);
                          }
 
-                    } else {
+                    } else { // original fork
+                         // writing side, left side of pipe
                          dup2(pipefd[1], STDOUT_FILENO);
                          close(pipefd[0]);
                          close(pipefd[1]);
@@ -145,7 +163,7 @@ int main() {
                     cout << "no command found" << endl;
                     exit(1);
                }
-          } else {
+          } else { // parent
                if (!run_bg) {
                     wait(NULL);
                }
